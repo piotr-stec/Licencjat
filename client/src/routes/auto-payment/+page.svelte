@@ -17,9 +17,6 @@
 		console.log('Auto-saving...');
 		console.log('Recipient:', recipient);
 		console.log('Amount:', amount);
-
-		// tutaj normalnie wykonałbyś transakcję lub akcję
-
 		processing = false;
 	}
 
