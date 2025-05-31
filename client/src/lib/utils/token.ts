@@ -1,36 +1,38 @@
-import { PUBLIC_PRIVACY_API } from '$env/static/public';
+import { provider } from '$lib/stores/provider';
+import { get } from 'svelte/store';
 
-export async function fetchTokenDecimals(tokenAddress: string) {
-	const response = await fetch(`${PUBLIC_PRIVACY_API}/asp/getTokenDecimals`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ token_address: tokenAddress })
-	});
+export async function fetchTokenDecimals(token: string): Promise<number> {
+	const rpc = get(provider);
+	const [decimalsRaw] =
+		(await rpc.callContract({ contractAddress: token, entrypoint: 'decimals' }, 'latest')) ?? [];
 
-	if (!response.ok) {
-		throw new Error(`Failed to fetch token decimals: ${response.statusText}`);
+	const decimals = Number(decimalsRaw);
+	if (!decimalsRaw || isNaN(decimals)) {
+		throw new Error(`Invalid decimals: ${decimalsRaw}`);
 	}
-
-	const data = await response.json();
-	if (typeof data.decimals !== 'number') {
-		throw new Error("Invalid response format: 'decimals' field is missing or incorrect");
-	}
-
-	return data.decimals;
+	return decimals;
 }
 
-export async function fetchTokenName(tokenAddress: string): Promise<string> {
-	const response = await fetch(`${PUBLIC_PRIVACY_API}/asp/getTokenName`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ token_address: tokenAddress })
-	});
+export async function fetchTokenSymbol(token: string): Promise<string> {
+	const rpc = get(provider);
+	const [feltHex] = await rpc.callContract(
+		{ contractAddress: token, entrypoint: 'symbol' },
+		'latest'
+	);
 
-	if (!response.ok) {
-		throw new Error(`Failed to fetch token name: ${response.statusText}`);
+	if (!feltHex || typeof feltHex !== 'string') {
+		throw new Error('No symbol result');
 	}
 
-	const data = await response.json();
+	// hex → bytes → ASCII
+	const hex = BigInt(feltHex).toString(16);
+	const paddedHex = hex.length % 2 === 1 ? '0' + hex : hex;
+	const bytes = paddedHex.match(/.{2}/g)?.map((b) => parseInt(b, 16)) ?? [];
+	const symbol = String.fromCharCode(...bytes).replace(/\0/g, '');
 
-	return data.name;
+	if (!symbol || !/^[a-zA-Z0-9]+$/.test(symbol)) {
+		throw new Error(`Invalid symbol: ${symbol}`);
+	}
+
+	return symbol;
 }
