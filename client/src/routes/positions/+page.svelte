@@ -19,6 +19,11 @@
 	let loading = false;
 	let error: string | null = null;
 
+	$: sortedPayments = [...payments].sort((a, b) => {
+		if (a.is_active === b.is_active) return 0;
+		return a.is_active ? -1 : 1;
+	});
+
 	async function hexToBool(hex: string) {
 		return hex === '0x1';
 	}
@@ -36,7 +41,7 @@
 			const token_address = input[baseIndex + 8];
 			const decimals = await fetchTokenDecimals(token_address);
 
-            let token_name = await fetchTokenSymbol(token_address);
+			let token_name = await fetchTokenSymbol(token_address);
 
 			const id = Number(BigInt(input[baseIndex + 0]));
 			const owner = input[baseIndex + 1];
@@ -59,7 +64,7 @@
 				token_address,
 				prepaid_gas_fee,
 				is_active,
-                token_name
+				token_name
 			});
 		}
 		return payments;
@@ -89,6 +94,38 @@
 			loading = false;
 		}
 	}
+
+	async function deactivatePayment(paymentId: number, owner: string) {
+		try {
+			const connectedWallet = get(wallet);
+			if (!connectedWallet) throw new Error('Please connect your wallet.');
+
+			const call = {
+				contract_address: PUBLIC_SMART_PAYMENT_CONTRACT_ADDRESS,
+				entry_point: 'deactivate_auto_payment',
+				calldata: [owner, paymentId.toString(16)]
+			};
+			await wrapWithToast(
+				async () => {
+					await connectedWallet.request({
+						type: 'wallet_addInvokeTransaction',
+						params: { calls: [call] }
+					});
+					showToast('Payment deactivated', 'success');
+					showToast('Refreashing payments - please wait', 'info');
+					loading = true;
+					await new Promise((resolve) => setTimeout(resolve, 2000));
+					await fetchAutoPayments();
+				},
+				{
+					error: (e) =>
+						`Failed to deactivate payment: ${e instanceof Error ? e.message : String(e)}`
+				}
+			);
+		} catch (e: any) {
+			showToast(e.message ?? 'Unknown error', 'error');
+		}
+	}
 </script>
 
 <PageContentContainer title="Auto Payments Viewer">
@@ -113,22 +150,68 @@
 
 	{#if payments.length > 0}
 		<ul class="mt-4 space-y-2">
-			{#each payments as payment}
-				<li class="rounded bg-gray-800 p-4">
+			{#each sortedPayments as payment}
+				<li class="rounded bg-gray-800 p-4 {payment.is_active ? 'payment-active' : 'payment-inactive'}">
 					<div><strong>Recipient:</strong> {payment.recipient}</div>
-					<div><strong>Amount:</strong> {payment.amount} {payment.token_name}</div>
 					<div><strong>Token:</strong> {payment.token_address}</div>
+
+					<div><strong>Amount:</strong> {payment.amount} {payment.token_name}</div>
 					<div>
 						<strong>Last Paid:</strong>
 						{new Date(payment.last_paid_timestamp * 1000).toLocaleString()}
 					</div>
-					<div><strong>Interval (min):</strong>{Math.floor(payment.interval / 60)}</div>
+					{#if payment.is_active}
+						<div>
+							<strong>Next Payment:</strong>
+							{new Date((payment.last_paid_timestamp + payment.interval) * 1000).toLocaleString()}
+						</div>
+					{/if}
+					<div><strong>Interval (min):</strong> {Math.floor(payment.interval / 60)}</div>
 					<div><strong>Payments Left:</strong> {payment.payment_quantity_left}</div>
 					<div><strong>Active:</strong> {payment.is_active ? 'Yes' : 'No'}</div>
+
+					<button
+						class="deactivate-button"
+						on:click={() => deactivatePayment(payment.id, payment.owner)}
+						disabled={!payment.is_active}
+						title="Deactivate this payment"
+					>
+						Deactivate
+					</button>
 				</li>
 			{/each}
 		</ul>
-	{:else if loading && !error}
+	{:else if !loading && !error}
 		<p class="mt-4 text-gray-400">No payments found.</p>
 	{/if}
 </PageContentContainer>
+
+<style>
+	.payment-inactive {
+		border-left: 4px solid #dc2626; /* czerwony */
+		padding-left: 0.75rem;
+	}
+	.payment-active {
+		border-left: 4px solid #22c55e; /* tailwind green-500 */
+		padding-left: 0.75rem;
+	}
+
+	.deactivate-button {
+		background-color: #dc2626;
+		color: white;
+		border: none;
+		padding: 0.5rem 0.75rem;
+		border-radius: 4px;
+		cursor: pointer;
+		font-weight: 600;
+		margin-top: 0.5rem;
+		transition: background-color 0.2s ease;
+	}
+	.deactivate-button:hover {
+		background-color: #b91c1c;
+	}
+	.deactivate-button:disabled {
+		background-color: #7f1d1d;
+		cursor: not-allowed;
+	}
+</style>
