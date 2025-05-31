@@ -1,12 +1,12 @@
-use starknet::ContractAddress;
 use core::array::Array;
+use starknet::ContractAddress;
 
 #[starknet::interface]
 pub trait ISmartPayment<TContractState> {
-    fn auto_pay(
+    fn schedule_auto_pay(
         ref self: TContractState,
         amount: u256,
-        receipient: ContractAddress,
+        recipient: ContractAddress,
         token_address: ContractAddress,
         interval: u64,
         payment_quantity: u64,
@@ -22,19 +22,18 @@ pub trait ISmartPayment<TContractState> {
 
 #[starknet::contract]
 pub mod SmartPayment {
-    use starknet::storage::VecTrait;
-    use openzeppelin::{token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait}};
-    use starknet::{
-        ContractAddress, get_caller_address, get_contract_address,
-        storage::{StoragePointerReadAccess, StoragePointerWriteAccess, Map, Vec, MutableVecTrait},
-    };
-    use starknet::get_block_timestamp;
-    use super::super::data_models::AutoPayment;
     use core::array::{Array, ArrayTrait};
+    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use starknet::storage::{
+        Map, MutableVecTrait, StoragePointerReadAccess, StoragePointerWriteAccess, Vec, VecTrait,
+    };
+    use starknet::{ContractAddress, get_block_timestamp, get_caller_address, get_contract_address};
+    use super::super::data_models::AutoPayment;
 
 
     pub mod Errors {
         pub const TRANSFER_FAILED: felt252 = 'Payment: Transfer Failed';
+        pub const OWNERSHIP: felt252 = 'Caller is not owner';
     }
 
     #[storage]
@@ -48,12 +47,13 @@ pub mod SmartPayment {
     enum Event {
         PaymentScheduled: PaymentScheduled,
         PaymentExecuted: PaymentExecuted,
+        PaymentDeactivated: PaymentDeactivated,
     }
 
     #[derive(Drop, PartialEq, starknet::Event)]
     struct PaymentScheduled {
         user: ContractAddress,
-        receipient: ContractAddress,
+        recipient: ContractAddress,
         amount: u256,
         token_address: ContractAddress,
         interval: u64,
@@ -62,9 +62,19 @@ pub mod SmartPayment {
     #[derive(Drop, PartialEq, starknet::Event)]
     struct PaymentExecuted {
         user: ContractAddress,
-        receipient: ContractAddress,
+        recipient: ContractAddress,
         amount: u256,
         token_address: ContractAddress,
+    }
+
+    #[derive(Drop, PartialEq, starknet::Event)]
+    struct PaymentDeactivated {
+        id: u64,
+        owner: ContractAddress,
+        recipient: ContractAddress,
+        amount: u256,
+        payment_quantity_left: u64,
+        interval: u64,
     }
 
 
@@ -75,7 +85,7 @@ pub mod SmartPayment {
             let mut to_execute_any = false;
             let payments_len = self.auto_payments.len();
             let mut i = 0;
-            while i < payments_len {
+            while i != payments_len {
                 let mut payment = self.auto_payments.at(i).read();
                 // Check if payment is active and if enough time has passed since last payment
                 if payment.is_active
@@ -83,7 +93,7 @@ pub mod SmartPayment {
                     to_execute_any = true;
                 }
                 i += 1;
-            };
+            }
 
             to_execute_any
         }
@@ -92,17 +102,11 @@ pub mod SmartPayment {
             let this = get_contract_address();
             let mut executed_any = false;
 
-            // Get all users with auto payments
-            // Note: In a production environment, we would need a more efficient way to iterate
-            // through users This is a simplified implementation for demonstration purposes
-
-            // For each user's auto payments
-            // Iterate through each payment and check if it's time to execute
             let payments_len = self.auto_payments.len();
 
             let mut i = 0;
 
-            while i < payments_len {
+            while i != payments_len {
                 let mut payment = self.auto_payments.at(i).read();
 
                 // Check if payment is active and if enough time has passed since last payment
@@ -111,45 +115,75 @@ pub mod SmartPayment {
                     // Execute the payment
                     let token = IERC20Dispatcher { contract_address: payment.token_address };
 
-                    // Transfer from contract to recipient
-                    let transfer_ok = token
-                        .transfer_from(payment.owner, this, payment.amount.into());
-                    assert(transfer_ok, Errors::TRANSFER_FAILED);
+                    let allowance = token.allowance(payment.owner, this);
+                    let balance = token.balance_of(payment.owner);
 
-                    // Transfer from contract to recipient
-                    let transfer_ok = token.transfer(payment.receipient, payment.amount.into());
-                    assert(transfer_ok, Errors::TRANSFER_FAILED);
+                    if allowance >= payment.amount.into() && balance >= payment.amount.into() {
+                        // Transfer from contract to recipient
+                        let transfer_ok = token
+                            .transfer_from(payment.owner, this, payment.amount.into());
+                        assert(transfer_ok, Errors::TRANSFER_FAILED);
 
-                    // Update the last paid timestamp
-                    payment.last_paid_timestamp = current_timestamp;
+                        // Transfer from contract to recipient
+                        let transfer_ok = token.transfer(payment.recipient, payment.amount.into());
+                        assert(transfer_ok, Errors::TRANSFER_FAILED);
 
-                    // Update the payment in the vector
-                    self.auto_payments.at(i).write(payment);
+                        // Update the last paid timestamp
+                        payment.last_paid_timestamp = current_timestamp;
 
-                    // Emit event
-                    self
-                        .emit(
-                            PaymentExecuted {
-                                user: payment.owner,
-                                receipient: payment.receipient,
-                                amount: payment.amount,
-                                token_address: payment.token_address,
-                            },
-                        );
+                        // payment quantity left - 1
+                        let current_quantity = payment.payment_quantity_left;
+                        payment.payment_quantity_left = current_quantity - 1;
 
-                    executed_any = true;
+                        if payment.payment_quantity_left < 1 {
+                            payment.is_active = false;
+                        }
+
+                        // Update the payment in the vector
+                        self.auto_payments.at(i).write(payment);
+
+                        // Emit event
+                        self
+                            .emit(
+                                PaymentExecuted {
+                                    user: payment.owner,
+                                    recipient: payment.recipient,
+                                    amount: payment.amount,
+                                    token_address: payment.token_address,
+                                },
+                            );
+
+                        executed_any = true;
+                    } else {
+                        payment.is_active = false;
+                        // Update the payment in the vector
+                        self.auto_payments.at(i).write(payment);
+
+                        // Emit event
+                        self
+                            .emit(
+                                PaymentDeactivated {
+                                    id: payment.id,
+                                    owner: payment.owner,
+                                    recipient: payment.recipient,
+                                    amount: payment.amount,
+                                    payment_quantity_left: payment.payment_quantity_left,
+                                    interval: payment.interval,
+                                },
+                            );
+                    }
                 }
 
                 i += 1;
-            };
+            }
 
             executed_any
         }
 
-        fn auto_pay(
+        fn schedule_auto_pay(
             ref self: ContractState,
             amount: u256,
-            receipient: ContractAddress,
+            recipient: ContractAddress,
             token_address: ContractAddress,
             interval: u64,
             payment_quantity: u64,
@@ -158,9 +192,6 @@ pub mod SmartPayment {
             let caller = get_caller_address();
             let this = get_contract_address();
             let token = IERC20Dispatcher { contract_address: token_address };
-
-            // Transfer tokens from caller to contract (for future payments)
-            token.transfer_from(caller, this, amount.into());
 
             token.transfer_from(caller, this, prepaid_gas_fee.into());
 
@@ -171,14 +202,14 @@ pub mod SmartPayment {
                 if payment.owner == caller && payment.id > last_id {
                     last_id = payment.id;
                 }
-            };
+            }
 
             // Create a new auto payment
             let current_timestamp = get_block_timestamp();
             let mut auto_payment = AutoPayment {
                 id: last_id + 1,
                 owner: caller,
-                receipient,
+                recipient,
                 amount,
                 payment_quantity_left: payment_quantity,
                 interval,
@@ -189,12 +220,12 @@ pub mod SmartPayment {
             };
 
             // Store the auto payment in the user's payments list
-            self.auto_payments.append().write(auto_payment);
+            self.auto_payments.push(auto_payment);
 
             // Emit event
             self
                 .emit(
-                    PaymentScheduled { user: caller, receipient, amount, token_address, interval },
+                    PaymentScheduled { user: caller, recipient, amount, token_address, interval },
                 );
 
             true
@@ -207,7 +238,7 @@ pub mod SmartPayment {
                 if payment.owner == user {
                     arr.append(payment);
                 }
-            };
+            }
             arr
         }
 
@@ -215,14 +246,28 @@ pub mod SmartPayment {
         fn deactivate_auto_payment(
             ref self: ContractState, user: ContractAddress, id: u64,
         ) -> bool {
+            let caller = get_caller_address();
+            assert(caller == user, Errors::OWNERSHIP);
             let mut result = false;
             for i in 0..self.auto_payments.len() {
                 let mut payment = self.auto_payments.at(i).read();
                 if payment.owner == user && payment.id == id && payment.is_active {
                     payment.is_active = false;
+                    self
+                        .emit(
+                            PaymentDeactivated {
+                                id: payment.id,
+                                owner: payment.owner,
+                                recipient: payment.recipient,
+                                amount: payment.amount,
+                                payment_quantity_left: payment.payment_quantity_left,
+                                interval: payment.interval,
+                            },
+                        );
+                    self.auto_payments.at(i).write(payment);
                     result = true;
                 }
-            };
+            }
             result
         }
     }
