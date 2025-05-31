@@ -1,0 +1,45 @@
+[workspace]
+resolver = "2"
+members = [ "transaction_executor"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.dependencies]
+starknet-types-core = { version = "0.1.7", default-features = false, features = [
+    "hash",
+    "curve",
+] }
+ark-ff = "0.5.0"
+axum = { version = "0.8.1", features = ["http2"] }
+cainome = { git = "https://github.com/piniom/cainome", features = [
+    "abigen-rs",
+], branch = "U256-improvements" }
+clap = { version = "4.5.27", features = ["derive", "env"] }
+url = "2.5.2"
+futures = "0.3.31"
+lazy_static = "1.5.0"
+num-bigint = { version = "0.4.6", features = ["serde"] }
+openrpc-testgen = { git = "https://github.com/neotheprogramist/starknet-hive.git", rev = "0741ae5f2cd73519931ec020a7b77e5420a6e0c4" }
+prefix-hex = "0.7.1"
+reqwest = { version = "0.12.12", features = ["json"] }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.138"
+starknet = "0.13.0"
+starknet-crypto = "0.7.4"
+starknet-types-rpc = { git = "https://github.com/neotheprogramist/types-rs.git", rev = "3ee4325a72481e526b7c4fa0592ad822a391658b" }
+thiserror = "2.0.11"
+time = { version = "0.3", features = ["serde", "std"] }
+tokio-tungstenite = { version = "0.23.1", features = ["native-tls"] }
+tokio = { version = "1.43.0", features = [
+    "macros",
+    "time",
+    "full",
+    "rt-multi-thread",
+] }
+tower-http = { version = "0.6.2", features = ["cors"] }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+surrealdb = { version = "2.2.0", features = ["kv-mem"] }
+futures-util = "0.3.31"
