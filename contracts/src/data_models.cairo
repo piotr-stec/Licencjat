@@ -4,7 +4,7 @@ use starknet::ContractAddress;
 pub struct AutoPayment {
     pub id: u64,
     pub owner: ContractAddress,
-    pub receipient: ContractAddress,
+    pub recipient: ContractAddress,
     pub amount: u256,
     pub payment_quantity_left: u64,
     pub interval: u64,
