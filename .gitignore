@@ -1,6 +1,7 @@
 **/*.lock
 .snfoundry_cache/
 accounts-file.json
+**/*-lock.json
 
 #### PYTHON
 
@@ -282,6 +283,7 @@ dist/
 debug/
 target/
 Cargo.lock
+.cargo
 
 # Rustfmt
 **/*.rs.bk
