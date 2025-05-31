@@ -26,6 +26,7 @@
 	{#if $isConnected}
 		<div class="navbar-menu">
 			<button on:click={() => goto('/auto-payment')} class="navbar-link">Auto Payment</button>
+			<button on:click={() => goto('/positions')} class="navbar-link">Positions</button>
 
 			<button
 				class="navbar-link"
