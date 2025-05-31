@@ -4,7 +4,7 @@
 [sncast.default] # Define a profile name
 url = "https://starknet-sepolia.g.alchemy.com/starknet/version/rpc/v0_7/M1xN5JzvCQoxejLv-feFyJp4xWLDT4J4"
 account = "argentACC"
-accounts-file = "accounts-file.json"
+accounts-file = "account-file.json"
 # keystore = "~/keystore"                                  # Path to the keystore file
 # wait-params = { timeout = 300, retry-interval = 10 }     # Wait for submitted transaction parameters
 # block-explorer = "StarkScan"                             # Block explorer service used to display links to transaction details
