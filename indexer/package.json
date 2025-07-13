@@ -14,7 +14,6 @@
   "dependencies": {
     "@apibara/protocol": "^0.4.9",
     "@apibara/starknet": "^0.5.0",
-    "@ekubo/sdk": "^0.0.6",
     "dotenv": "^16.4.7",
     "ethers": "^6.13.2",
     "starknet": "^6.11.0",
