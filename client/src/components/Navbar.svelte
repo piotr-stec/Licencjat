@@ -21,7 +21,7 @@
 </script>
 
 <nav class="navbar">
-	<a href="/auto-payment" class="navbar-logo">SmartPay</a>
+	<a href="/" class="navbar-logo starknet-logo">SMARTPAY</a>
 
 	{#if $isConnected}
 		<div class="navbar-menu">
@@ -29,13 +29,13 @@
 			<button on:click={() => goto('/positions')} class="navbar-link">Positions</button>
 
 			<button
-				class="navbar-link"
+				class="blockchain-address"
 				on:click={handleCopy}
 				on:keypress={(e) => e.key === 'Enter' && handleCopy()}
 				title="Click to copy"
 				aria-label="Copy wallet address"
 			>
-				{shortAddress($walletAddress)}
+				🔗 {shortAddress($walletAddress)}
 			</button>
 
 			<button on:click={handleDisconnect} class="navbar-disconnect">Disconnect</button>

@@ -110,36 +110,49 @@
 	}
 </script>
 
-<PageContentContainer title="Auto Payment">
-	<InputField bind:value={tokenAddress} placeholder="Enter Token Address" />
+<div class="blockchain-grid min-h-screen">
+	<PageContentContainer title="Auto Payment">
+		<div class="form-container mx-auto max-w-2xl">
+			<div class="cyber-text mb-6 text-center text-xl">⚡ AUTOMATED PAYMENT SCHEDULER ⚡</div>
+			<InputField bind:value={tokenAddress} placeholder="Enter Token Address" />
 
-	<InputField type="text" placeholder="Recipient" customClass="mt-4" bind:value={recipient} />
+			<InputField type="text" placeholder="Recipient" customClass="mt-4" bind:value={recipient} />
 
-	<InputField type="text" placeholder="Amount" customClass="mt-4" bind:value={amount} />
+			<InputField type="text" placeholder="Amount" customClass="mt-4" bind:value={amount} />
 
-	<div class="mt-4 flex gap-2">
-		<InputField type="number" placeholder="Time value" customClass="mt-4" bind:value={timeValue} />
-		<select
-			bind:value={timeUnit}
-			class="mt-4 rounded border p-2"
-			style="background-color: #0a0a0a; color: white;"
-		>
-			<option value="minutes">Minutes</option>
-			<option value="hours">Hours</option>
-			<option value="days">Days</option>
-		</select>
-	</div>
+			<div class="mt-4 flex gap-2">
+				<InputField
+					type="number"
+					placeholder="Time Interval"
+					customClass="mt-4"
+					bind:value={timeValue}
+				/>
+				<select bind:value={timeUnit} class="select-blockchain mt-4 flex-shrink-0">
+					<option value="minutes">Minutes</option>
+					<option value="hours">Hours</option>
+					<option value="days">Days</option>
+				</select>
+			</div>
 
-	<InputField
-		type="number"
-		placeholder="Number of executions"
-		customClass="mt-4"
-		bind:value={executions}
-	/>
+			<InputField
+				type="number"
+				placeholder="Number of executions"
+				customClass="mt-4"
+				bind:value={executions}
+			/>
 
-	<ActionButton onClick={autoPayHandler} customClass="mt-4">Schedule Auto Payment</ActionButton>
+			<div class="mt-8">
+				<ActionButton onClick={autoPayHandler} customClass="mt-4 w-full">
+					⚙️ SCHEDULE AUTO PAYMENT ⚙️
+				</ActionButton>
+			</div>
 
-	{#if processing}
-		<p class="mt-2 text-sm text-gray-500">Processing AutoPayment...</p>
-	{/if}
-</PageContentContainer>
+			{#if processing}
+				<div class="processing-indicator mt-4 justify-center">
+					<div class="processing-spinner"></div>
+					<span class="loading-dots">PROCESSING AUTOPAYMENT</span>
+				</div>
+			{/if}
+		</div>
+	</PageContentContainer>
+</div>

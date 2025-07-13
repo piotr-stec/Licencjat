@@ -128,90 +128,156 @@
 	}
 </script>
 
-<PageContentContainer title="Auto Payments Viewer">
-	<InputField
-		type="text"
-		placeholder="Enter your address"
-		customClass="mt-4"
-		bind:value={userAddress}
-	/>
+<div class="blockchain-grid min-h-screen">
+	<PageContentContainer title="Auto Payments Viewer">
+		<div class="form-container mx-auto max-w-4xl">
+			<div class="cyber-text mb-6 text-center text-xl">🔍 PAYMENT POSITIONS SCANNER 🔍</div>
+			<InputField
+				type="text"
+				placeholder="Enter wallet address to scan"
+				customClass="mt-4"
+				bind:value={userAddress}
+			/>
 
-	<ActionButton
-		onClick={fetchAutoPayments}
-		customClass="mt-4"
-		disabled={loading || !userAddress.trim()}
-	>
-		{loading ? 'Loading...' : 'Fetch Payments'}
-	</ActionButton>
-
-	{#if error}
-		<p class="mt-2 text-red-600">{error}</p>
-	{/if}
-
-	{#if payments.length > 0}
-		<ul class="mt-4 space-y-2">
-			{#each sortedPayments as payment}
-				<li class="rounded bg-gray-800 p-4 {payment.is_active ? 'payment-active' : 'payment-inactive'}">
-					<div><strong>Recipient:</strong> {payment.recipient}</div>
-					<div><strong>Token:</strong> {payment.token_address}</div>
-
-					<div><strong>Amount:</strong> {payment.amount} {payment.token_name}</div>
-					<div>
-						<strong>Last Paid:</strong>
-						{new Date(payment.last_paid_timestamp * 1000).toLocaleString()}
-					</div>
-					{#if payment.is_active}
-						<div>
-							<strong>Next Payment:</strong>
-							{new Date((payment.last_paid_timestamp + payment.interval) * 1000).toLocaleString()}
+			<div class="mt-6">
+				<ActionButton
+					onClick={fetchAutoPayments}
+					customClass="mt-4 w-full"
+					disabled={loading || !userAddress.trim()}
+				>
+					{#if loading}
+						<div class="processing-indicator">
+							<div class="processing-spinner"></div>
+							<span>SCANNING BLOCKCHAIN</span>
 						</div>
+					{:else}
+						🔍 SCAN PAYMENTS 🔍
 					{/if}
-					<div><strong>Interval (min):</strong> {Math.floor(payment.interval / 60)}</div>
-					<div><strong>Payments Left:</strong> {payment.payment_quantity_left}</div>
-					<div><strong>Active:</strong> {payment.is_active ? 'Yes' : 'No'}</div>
+				</ActionButton>
+			</div>
 
-					<button
-						class="deactivate-button"
-						on:click={() => deactivatePayment(payment.id, payment.owner)}
-						disabled={!payment.is_active}
-						title="Deactivate this payment"
-					>
-						Deactivate
-					</button>
-				</li>
-			{/each}
-		</ul>
-	{:else if !loading && !error}
-		<p class="mt-4 text-gray-400">No payments found.</p>
-	{/if}
-</PageContentContainer>
+			{#if error}
+				<div class="alert alert-error mt-4">
+					⚠️ ERROR: {error}
+				</div>
+			{/if}
+
+			{#if payments.length > 0}
+				<div class="mt-8 space-y-4">
+					<div class="cyber-text mb-4 text-lg">
+						⚡ ACTIVE POSITIONS: {sortedPayments.filter((p) => p.is_active).length} | INACTIVE: {sortedPayments.filter(
+							(p) => !p.is_active
+						).length}
+					</div>
+					{#each sortedPayments as payment}
+						<div
+							class="card blockchain-card {payment.is_active
+								? 'payment-active'
+								: 'payment-inactive'}"
+						>
+							<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+								<div class="space-y-4">
+									<div>
+										<div class="cyber-text mb-2 text-sm">🎯 RECIPIENT</div>
+										<div class="blockchain-address w-full text-xs break-all">
+											{payment.recipient}
+										</div>
+									</div>
+									<div>
+										<div class="cyber-text mb-2 text-sm">🪙 TOKEN</div>
+										<div class="blockchain-address w-full text-xs break-all">
+											{payment.token_address}
+										</div>
+									</div>
+								</div>
+								<div class="space-y-4">
+									<div>
+										<div class="cyber-text mb-2 text-sm">💰 AMOUNT</div>
+										<div class="text-xl font-bold break-words text-white">
+											{payment.amount}
+											{payment.token_name}
+										</div>
+									</div>
+									<div>
+										<div class="cyber-text mb-2 text-sm">⏱️ SCHEDULE</div>
+										<div class="text-sm text-gray-300">
+											Every {Math.floor(payment.interval / 60)} minutes
+										</div>
+										<div class="text-sm text-gray-300">
+											{payment.payment_quantity_left} payments left
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="mt-6 border-t border-gray-600 pt-4">
+								<div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+									<div class="text-center sm:text-left">
+										<div class="text-xs text-gray-400">Last Paid:</div>
+										<div class="text-sm break-words">
+											{new Date(payment.last_paid_timestamp * 1000).toLocaleString()}
+										</div>
+									</div>
+									{#if payment.is_active}
+										<div class="text-center sm:text-left">
+											<div class="text-xs text-gray-400">Next Payment:</div>
+											<div class="text-sm break-words">
+												{new Date(
+													(payment.last_paid_timestamp + payment.interval) * 1000
+												).toLocaleString()}
+											</div>
+										</div>
+									{/if}
+									<div class="flex items-center justify-center gap-2 sm:justify-start">
+										<div
+											class="h-3 w-3 rounded-full {payment.is_active
+												? 'bg-green-400'
+												: 'bg-red-400'}"
+										></div>
+										<span
+											class="text-sm font-bold {payment.is_active
+												? 'text-green-400'
+												: 'text-red-400'}"
+										>
+											{payment.is_active ? 'ACTIVE' : 'INACTIVE'}
+										</span>
+									</div>
+								</div>
+
+								{#if payment.is_active}
+									<button
+										class="navbar-disconnect mt-4 w-full"
+										on:click={() => deactivatePayment(payment.id, payment.owner)}
+										title="Deactivate this payment"
+									>
+										⛔ DEACTIVATE PAYMENT
+									</button>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else if !loading && !error}
+				<div class="card mt-8 text-center">
+					<div class="cyber-text mb-4 text-lg">🕵️ NO POSITIONS DETECTED</div>
+					<p class="text-gray-400">No automated payments found for this address.</p>
+				</div>
+			{/if}
+		</div>
+	</PageContentContainer>
+</div>
 
 <style>
 	.payment-inactive {
-		border-left: 4px solid #dc2626; /* czerwony */
-		padding-left: 0.75rem;
+		border-left: 4px solid var(--color-error);
+		box-shadow:
+			0 8px 32px rgba(0, 0, 0, 0.6),
+			0 0 var(--glow-size) rgba(255, 68, 68, 0.3);
 	}
 	.payment-active {
-		border-left: 4px solid #22c55e; /* tailwind green-500 */
-		padding-left: 0.75rem;
-	}
-
-	.deactivate-button {
-		background-color: #dc2626;
-		color: white;
-		border: none;
-		padding: 0.5rem 0.75rem;
-		border-radius: 4px;
-		cursor: pointer;
-		font-weight: 600;
-		margin-top: 0.5rem;
-		transition: background-color 0.2s ease;
-	}
-	.deactivate-button:hover {
-		background-color: #b91c1c;
-	}
-	.deactivate-button:disabled {
-		background-color: #7f1d1d;
-		cursor: not-allowed;
+		border-left: 4px solid var(--color-success);
+		box-shadow:
+			0 8px 32px rgba(0, 0, 0, 0.6),
+			0 0 var(--glow-size) rgba(0, 255, 136, 0.3);
 	}
 </style>

@@ -44,16 +44,28 @@
 </script>
 
 <main class="flex min-h-screen flex-col">
+	<!-- Floating particles background -->
+	<div class="floating-particles"></div>
+	<div class="floating-particles"></div>
+	<div class="floating-particles"></div>
+	<div class="floating-particles"></div>
+	<div class="floating-particles"></div>
+	<div class="floating-particles"></div>
+	<div class="floating-particles"></div>
+	<div class="floating-particles"></div>
+	<div class="floating-particles"></div>
+
 	<header class="fixed top-0 right-0 left-0 z-50">
 		<Navbar />
 	</header>
 
 	{#if isInitializing}
-		<div class="flex flex-1 flex-col items-center justify-center gap-2">
-			<div
-				class="h-6 w-6 animate-spin rounded-full border-4 border-gray-400 border-t-transparent"
-			></div>
-			<p class="text-sm text-gray-400">Connecting wallet...</p>
+		<div class="blockchain-grid flex flex-1 flex-col items-center justify-center gap-4">
+			<div class="pulse-ring">
+				<div class="processing-spinner h-12 w-12 border-4"></div>
+			</div>
+			<div class="cyber-text text-lg">INITIALIZING BLOCKCHAIN CONNECTION</div>
+			<p class="loading-dots text-sm text-gray-400">Connecting to Starknet</p>
 		</div>
 	{:else}
 		<div class="flex flex-1 flex-col pt-20">
