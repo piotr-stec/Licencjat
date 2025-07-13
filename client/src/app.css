@@ -744,6 +744,16 @@ body::before {
 	.card {
 		padding: 1.5rem;
 	}
+
+	.navbar-connect {
+		font-size: 0.7rem;
+		padding: 0.6rem 1rem;
+	}
+
+	.navbar-link {
+		font-size: 0.75rem;
+		padding: 0.4rem 0.8rem;
+	}
 }
 
 .navbar {
@@ -881,9 +891,48 @@ body::before {
 	font-size: 0.8rem;
 }
 
+.navbar-connect {
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+	color: #000;
+	border: none;
+	border-radius: var(--border-radius);
+	padding: 0.75rem 1.5rem;
+	font-weight: 700;
+	transition: all var(--animation-speed) ease;
+	box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	font-size: 0.8rem;
+	cursor: pointer;
+	position: relative;
+	overflow: hidden;
+}
+
 .navbar-disconnect:hover {
 	transform: translateY(-2px) scale(1.05);
 	cursor: pointer;
 	box-shadow: 0 8px 25px rgba(255, 68, 68, 0.6);
 	filter: brightness(1.1);
+}
+
+.navbar-connect:hover {
+	transform: translateY(-2px) scale(1.05);
+	box-shadow: 0 8px 25px rgba(0, 255, 136, 0.6);
+	filter: brightness(1.1);
+}
+
+.navbar-connect::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+	transition: left 0.5s;
+	pointer-events: none;
+}
+
+.navbar-connect:hover::before {
+	left: 100%;
 }

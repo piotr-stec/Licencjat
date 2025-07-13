@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { isConnected, walletAddress } from '$lib/stores/wallet';
-	import { copyWalletAddress, disconnectWallet, shortAddress } from '$lib/utils/wallet';
+	import {
+		copyWalletAddress,
+		disconnectWallet,
+		shortAddress,
+		connectWallet
+	} from '$lib/utils/wallet';
 	import ToggleTheme from './ToggleTheme.svelte';
 	import { wrapWithToast } from '$lib/utils/wrapWithToast';
 
@@ -18,13 +23,24 @@
 			error: 'Failed to disconnect wallet'
 		});
 	}
+
+	async function handleConnect() {
+		const success = await wrapWithToast(() => connectWallet(), {
+			success: 'Wallet connected successfully!',
+			error: (err) => `Failed to connect wallet: ${(err as Error).message}`
+		});
+
+		if (success) {
+			goto('/auto-payment');
+		}
+	}
 </script>
 
 <nav class="navbar">
 	<a href="/" class="navbar-logo starknet-logo">SMARTPAY</a>
 
-	{#if $isConnected}
-		<div class="navbar-menu">
+	<div class="navbar-menu">
+		{#if $isConnected}
 			<button on:click={() => goto('/auto-payment')} class="navbar-link">Auto Payment</button>
 			<button on:click={() => goto('/positions')} class="navbar-link">Positions</button>
 
@@ -39,7 +55,9 @@
 			</button>
 
 			<button on:click={handleDisconnect} class="navbar-disconnect">Disconnect</button>
-			<ToggleTheme />
-		</div>
-	{/if}
+		{:else}
+			<button on:click={handleConnect} class="navbar-connect"> ⚡ Connect Wallet </button>
+		{/if}
+		<ToggleTheme />
+	</div>
 </nav>
